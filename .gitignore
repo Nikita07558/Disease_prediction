@@ -1,5 +1,6 @@
-.csv
-
+*.csv
+!New_Kidney_Data.csv
+!New_Liver_Data.csv
 *.pkl
 
 !kidney_model.pkl
