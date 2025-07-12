@@ -2,75 +2,48 @@
 #numpy version this can work with 1.26.4
 #scikit-learn version 1.3.0
 #pandas 2.0.2
+import streamlit as st
 import numpy as np
 import pandas as pd
-import streamlit as st
 import pickle
-from sklearn.preprocessing import StandardScaler, LabelEncoder, PolynomialFeatures
-from sklearn.impute import SimpleImputer
 
-# Load trained model
-with open('model_filename (3).pkl', 'rb') as model_file:
-    loaded_model = pickle.load(model_file)
-
-# Load dataset
-liver_file = pd.read_csv("Liver cirrhosis UCI Dataset.csv")
-
-# Define feature columns
-cols = ['AGE', 'GENDER', 'TB(Total Bilirubin)', 'DB(Direct Bilirubin)',
-        'Alkphos Alkaline Phosphotase', 'Sgpt  Alamine Aminotransferase',
-        'Sgot Aspartate Aminotransferase', 'TP Total Protiens',
-        'ALB Albumin', 'A/G Ratio Albumin and Globulin Ratio']
-
-# Encode GENDER column
-label_encoder = LabelEncoder()
-liver_file['GENDER'] = label_encoder.fit_transform(liver_file['GENDER'].astype(str))
-
-# Handle missing values
-imputer = SimpleImputer(strategy="mean")
-liver_file[cols] = imputer.fit_transform(liver_file[cols])
-
-# Apply PolynomialFeatures if it was used in training
-poly = PolynomialFeatures(degree=1)  # If used during training
-liver_poly = poly.fit_transform(liver_file[cols])
-
-# Fit StandardScaler on transformed features
-scaler = StandardScaler()
-scaler.fit(liver_poly)
+# Load trained pipeline model
+with open("best_liver_model.pkl", "rb") as file:
+    model = pickle.load(file)
 
 # Streamlit UI
-st.title("Liver Cirrhosis Prediction")
-st.markdown("**Enter details to get a prediction**")
+st.title("🧫 Liver Cirrhosis Prediction")
+st.markdown("Enter patient details to predict liver cirrhosis risk.")
 
-# User Inputs
-age = st.number_input("Age", min_value=1, max_value=100, step=1, format="%i")
-gender_str = st.radio("Gender", ['Female', 'Male'])
-tb = st.number_input("Total Bilirubin", min_value=0.0)
-db = st.number_input("Direct Bilirubin", min_value=0.0)
-aap = st.number_input("Alkphos Alkaline Phosphotase", min_value=0.0)
-saa = st.number_input("Sgpt Alamine Aminotransferase", min_value=0.0)
-sgaa = st.number_input("Sgot Aspartate Aminotransferase", min_value=0.0)
-ttp = st.number_input("TP Total Proteins", min_value=0.0)
-aa = st.number_input("ALB Albumin", min_value=0.0)
-ragr = st.number_input("A/G Ratio Albumin and Globulin Ratio", min_value=0.0)
-# Encode gender input
-gender_encoded = label_encoder.transform([gender_str])[0]
+# Input fields
+age = st.number_input("Age", min_value=1, max_value=120, step=1)
+gender = st.radio("Gender", ["Male", "Female"])
+tb = st.number_input("Total Bilirubin")
+db = st.number_input("Direct Bilirubin")
+alkphos = st.number_input("Alkaline Phosphotase")
+sgpt = st.number_input("Sgpt (Alamine Aminotransferase)")
+sgot = st.number_input("Sgot (Aspartate Aminotransferase)")
+tp = st.number_input("Total Proteins")
+alb = st.number_input("Albumin")
+agr = st.number_input("Albumin and Globulin Ratio")
 
-# Prepare input array
-liver_array = np.array([[age, gender_encoded, tb, db, aap, saa, sgaa, ttp, aa, ragr]])
+# Encode gender manually (as done in training)
+gender_encoded = 1 if gender == "Male" else 0
 
-# Apply the same transformations as during training
-liver_poly_test = poly.transform(liver_array)  # Ensures 11 features
-liver_scaled = scaler.transform(liver_poly_test)  # Scales the data correctly
+# Final input for prediction
+input_data = np.array([[age, gender_encoded, tb, db, alkphos, sgpt, sgot, tp, alb, agr]])
 
-# Make prediction
+# Prediction
 if st.button("Predict"):
-    probability = loaded_model.predict_proba(liver_scaled)[0][1]  # Probability of cirrhosis
-    st.success(f"Prediction: {round(probability, 4)}")
-    if probability < 0.1204:
-        st.write("Liver cirrhosis is **unlikely**.")
+    prediction = model.predict(input_data)[0]
+    proba = model.predict_proba(input_data)[0][1]
+
+    st.subheader("🎯 Prediction Result")
+    if prediction == 1:
+        st.success(f"✅ No Liver Cirrhosis Detected (Probability: {proba:.2f})")
     else:
-        st.write("Liver cirrhosis is **likely**.")
+        st.error(f"⚠️ Liver Cirrhosis Likely (Probability: {proba:.2f})")
+
 
 
 

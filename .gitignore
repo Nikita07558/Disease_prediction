@@ -1,0 +1,8 @@
+.csv
+
+*.pkl
+
+!kidney_model.pkl
+!scaler.pkl
+!encoders.pkl
+!best_liver_model.pkl
